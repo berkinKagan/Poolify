@@ -1,23 +1,29 @@
-import logo from './logo.svg';
-import './App.css';
+// App.js
+import React from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import LogIn from './pages/LogIn';
+import SignUp from './pages/SignUp';
+import Classes from './pages/Classes';
+import Cart from './pages/Cart';
+import CoachDashboard from './pages/CoachDashboard';
+import LogOut from './pages/LogOut';
+import Navbar from './components/Navbar';
 
 function App() {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      {!isAuthPage && <Navbar />}
+      <Routes>
+        <Route path="/login" element={<LogIn />} />
+        <Route path="/logout" element={<LogOut />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/classes" element={<Classes />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/coach-dashboard" element={<CoachDashboard />} />
+      </Routes>
     </div>
   );
 }
