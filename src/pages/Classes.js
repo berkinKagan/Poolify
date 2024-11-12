@@ -8,68 +8,68 @@ const { Option } = Select;
 
 const swimmingClassesData = [
   {
-    classID: 'SW001',
+    classID: 1,
     classCapacity: 20,
-    currentEnrollment: 18,
     classLevel: 'Beginner',
     classType: 'Freestyle Swimming',
     ageLimit: 12,
     registrationDeadline: '2024-12-01',
+    price: '$50',
     date: '2024-12-10',
     time: '10:00',
-    price: '$50',
+    gender: 'All',
     icon: <CloudOutlined style={{ fontSize: '48px', color: '#1890ff' }} />,
   },
   {
-    classID: 'SW002',
+    classID: 2,
     classCapacity: 15,
-    currentEnrollment: 12,
     classLevel: 'Intermediate',
     classType: 'Butterfly Stroke',
     ageLimit: 14,
     registrationDeadline: '2024-12-05',
+    price: '$70',
     date: '2024-12-12',
     time: '12:00',
-    price: '$70',
+    gender: 'Women',
     icon: <ThunderboltOutlined style={{ fontSize: '48px', color: '#52c41a' }} />,
   },
   {
-    classID: 'SW003',
+    classID: 3,
     classCapacity: 10,
-    currentEnrollment: 10,
     classLevel: 'Advanced',
     classType: 'Backstroke',
     ageLimit: 16,
     registrationDeadline: '2024-12-10',
+    price: '$90',
     date: '2024-12-15',
     time: '14:00',
-    price: '$90',
+    gender: 'Men',
     icon: <FireOutlined style={{ fontSize: '48px', color: '#f5222d' }} />,
   },
   {
-    classID: 'SW004',
+    classID: 4,
     classCapacity: 25,
-    currentEnrollment: 20,
     classLevel: 'Beginner',
     classType: 'Breaststroke',
     ageLimit: 12,
     registrationDeadline: '2024-12-15',
+    price: '$55',
     date: '2024-12-18',
     time: '16:00',
-    price: '$55',
+    gender: 'Women',
     icon: <CloudOutlined style={{ fontSize: '48px', color: '#faad14' }} />,
   },
   {
-    classID: 'SW005',
+    classID: 5,
     classCapacity: 30,
-    currentEnrollment: 28,
     classLevel: 'Intermediate',
     classType: 'Mixed Styles',
     ageLimit: 18,
     registrationDeadline: '2024-12-20',
+    price: '$80',
     date: '2024-12-20',
     time: '18:00',
-    price: '$80',
+    gender: 'All',
     icon: <ThunderboltOutlined style={{ fontSize: '48px', color: '#1890ff' }} />,
   },
 ];
@@ -77,7 +77,7 @@ const swimmingClassesData = [
 function Classes() {
   const [filteredClasses, setFilteredClasses] = useState(swimmingClassesData);
   const [cart, setCart] = useState([]);
-  const [filters, setFilters] = useState({ date: null, time: null, level: null });
+  const [filters, setFilters] = useState({ date: null, time: null, level: null, gender: null });
 
   // Handler for applying filters
   const applyFilters = () => {
@@ -92,6 +92,9 @@ function Classes() {
     if (filters.level) {
       filtered = filtered.filter((cls) => cls.classLevel === filters.level);
     }
+    if (filters.gender) {
+      filtered = filtered.filter((cls) => cls.gender === filters.gender || cls.gender === 'All');
+    }
 
     setFilteredClasses(filtered);
   };
@@ -101,7 +104,7 @@ function Classes() {
     const now = moment();
     const deadline = moment(classSession.registrationDeadline);
 
-    if (classSession.currentEnrollment >= classSession.classCapacity) {
+    if (classSession.classCapacity <= cart.filter((id) => id === classSession.classID).length) {
       message.error('Class is full!');
       return;
     }
@@ -116,7 +119,6 @@ function Classes() {
 
   return (
     <div style={{ padding: '20px', background: 'linear-gradient(to bottom, #e0f7fa, #ffffff)', minHeight: '100vh' }}>
-      {/* Header Section */}
       <div style={{ textAlign: 'center', marginBottom: '40px' }}>
         <Title level={2} style={{ color: '#1890ff' }}>Explore Our Swimming Classes</Title>
         <Paragraph style={{ fontSize: '1.2rem' }}>
@@ -138,12 +140,21 @@ function Classes() {
           />
           <Select
             placeholder="Select Level"
-            style={{ width: 150 }}
+            style={{ width: 180 }}
             onChange={(level) => setFilters({ ...filters, level })}
           >
             <Option value="Beginner">Beginner</Option>
             <Option value="Intermediate">Intermediate</Option>
             <Option value="Advanced">Advanced</Option>
+          </Select>
+          <Select
+            placeholder="Select Gender"
+            style={{ width: 180 }}
+            onChange={(gender) => setFilters({ ...filters, gender })}
+          >
+            <Option value="All">All</Option>
+            <Option value="Men">Men</Option>
+            <Option value="Women">Women</Option>
           </Select>
           <Button type="primary" onClick={applyFilters}>Apply Filters</Button>
         </Space>
@@ -158,14 +169,7 @@ function Classes() {
           <Card
             key={classSession.classID}
             hoverable
-            style={{
-              marginBottom: '20px',
-              borderRadius: '10px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-              transition: 'transform 0.3s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            style={{ marginBottom: '20px', borderRadius: '10px' }}
           >
             <div style={{ textAlign: 'center', marginBottom: '15px' }}>
               {classSession.icon}
@@ -173,9 +177,10 @@ function Classes() {
             <Title level={4}>{classSession.classType} - {classSession.classLevel}</Title>
             <Paragraph><strong>Date:</strong> {classSession.date}</Paragraph>
             <Paragraph><strong>Time:</strong> {classSession.time}</Paragraph>
-            <Paragraph><strong>Capacity:</strong> {classSession.currentEnrollment}/{classSession.classCapacity}</Paragraph>
+            <Paragraph><strong>Capacity:</strong> {classSession.classCapacity}</Paragraph>
             <Paragraph><strong>Age Limit:</strong> {classSession.ageLimit}</Paragraph>
             <Paragraph><strong>Price:</strong> {classSession.price}</Paragraph>
+            <Paragraph><strong>Gender:</strong> {classSession.gender}</Paragraph>
             <Button type="primary" block onClick={() => addToCart(classSession)}>Add to Cart</Button>
           </Card>
         )}
