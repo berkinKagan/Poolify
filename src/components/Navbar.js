@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   SettingOutlined,
   WalletOutlined,
+  StarOutlined
 } from '@ant-design/icons';
 
 const { Title } = Typography;
@@ -40,6 +41,9 @@ function Navbar({ walletBalance }) {
         </Menu.Item>
         <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
           <Link to="/coach-dashboard">Coach Dashboard</Link>
+        </Menu.Item>
+        <Menu.Item key="other-activities" icon={<StarOutlined></StarOutlined>}>
+          <Link to="/other-activities">Other Activities</Link>
         </Menu.Item>
         <Menu.Item key="settings" icon={<SettingOutlined />}>
           <Link to="/settings">Settings</Link>

@@ -8,6 +8,7 @@ import Cart from './pages/Cart';
 import CoachDashboard from './pages/CoachDashboard';
 import LogOut from './pages/LogOut';
 import Navbar from './components/Navbar';
+import OtherActivities from './pages/OtherActivities';
 
 function App() {
   const location = useLocation();
@@ -17,6 +18,7 @@ function App() {
     <div>
       {!isAuthPage && <Navbar />}
       <Routes>
+        <Route path='/other-activities' element={<OtherActivities/>}/>
         <Route path="/login" element={<LogIn />} />
         <Route path="/logout" element={<LogOut />} />
         <Route path="/signup" element={<SignUp />} />
