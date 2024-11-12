@@ -27,10 +27,10 @@ function LogIn() {
         <Form onFinish={onFinish} layout="vertical" size="large">
           {/* Username Input */}
           <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Please enter your username!' }]}
+            name="email"
+            rules={[{ required: true, message: 'Please enter your email!' }]}
           >
-            <Input placeholder="Username" />
+            <Input placeholder="Email" />
           </Form.Item>
 
           {/* Password Input */}
