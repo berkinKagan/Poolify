@@ -19,7 +19,7 @@ function Navbar({ walletBalance }) {
 
   // Log Out Handler
   const handleLogOut = () => {
-    localStorage.removeItem('authToken');
+    localStorage.clear();
     message.success('Logged out successfully!');
     navigate('/login');
   };

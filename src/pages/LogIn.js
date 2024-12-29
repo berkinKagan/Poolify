@@ -1,7 +1,7 @@
-// pages/LogIn.js
 import React from 'react';
-import { Form, Input, Button, Card, Typography } from 'antd';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
+import apiClient from '../apiClient';
 
 const { Title, Text } = Typography;
 
@@ -9,10 +9,38 @@ function LogIn() {
   const navigate = useNavigate();
 
   // Handler for form submission
-  const onFinish = (values) => {
-    console.log('Success:', values);
-    // Navigate to the Classes page after a successful login
-    navigate('/classes');
+  const onFinish = async (values) => {
+    try {
+      // Make API call to login endpoint
+      const response = await apiClient.post('/api/users/login', {
+        email: values.email,
+        password: values.password,
+      });
+
+      // Handle success
+      const { userRole, userID } = response.data;
+
+      // Store user data in local storage
+      localStorage.setItem('user', JSON.stringify({ userRole, userID }));
+
+      message.success('Login successful!');
+
+      // Navigate based on user role
+      if (userRole === 'administrator') {
+        navigate('/admin-dashboard'); // Example admin dashboard page
+      } else {
+        navigate('/classes'); // Default page for other users
+      }
+    } catch (error) {
+      // Handle errors
+      if (error.response?.status === 401) {
+        message.error('Invalid email or password');
+      } else if (error.response?.status === 404) {
+        message.error('User not found');
+      } else {
+        message.error('An error occurred. Please try again.');
+      }
+    }
   };
 
   return (
@@ -25,7 +53,7 @@ function LogIn() {
       {/* Log In Card */}
       <Card title="Log In" style={{ width: 400, padding: '20px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' }}>
         <Form onFinish={onFinish} layout="vertical" size="large">
-          {/* Username Input */}
+          {/* Email Input */}
           <Form.Item
             name="email"
             rules={[{ required: true, message: 'Please enter your email!' }]}
