@@ -4,6 +4,8 @@ import LogIn from './pages/LogIn';
 import SignUp from './pages/SignUp';
 import Classes from './pages/Classes';
 import Cart from './pages/Cart';
+import Settings from './pages/Settings';
+import AdministratorDashboard from './pages/AdministratorDashboard';
 import CoachDashboard from './pages/CoachDashboard';
 import LogOut from './pages/LogOut';
 import Navbar from './components/Navbar';
@@ -76,6 +78,22 @@ function App() {
           element={
             <ProtectedRoute currentUser={currentUser}>
               <LogOut onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <Settings/>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/administrator-dashboard"
+          element={
+            <ProtectedRoute currentUser={currentUser} allowedRoles={['administrator']}>
+              <AdministratorDashboard />
             </ProtectedRoute>
           }
         />

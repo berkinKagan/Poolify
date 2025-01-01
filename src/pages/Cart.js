@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Card, List, Button, Radio, message, Typography, Empty, Progress, Modal, Form, Input, Select } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Card, List, Button, Radio, message, Typography, Empty, Progress, Select } from 'antd';
+import { getUserFromLocalStorage } from '../Auth';
+import apiClient from '../apiClient';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -8,54 +9,56 @@ const { Option } = Select;
 function Cart() {
   // State variables
   const [cartItems, setCartItems] = useState([]);
-  const [swimmerBalance, setSwimmerBalance] = useState(200); // Example balance
+  const [swimmerBalance, setSwimmerBalance] = useState(); // Example balance
   const [calendar, setCalendar] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
   const [currentStep, setCurrentStep] = useState(0);
-  const [isCardModalVisible, setIsCardModalVisible] = useState(false);
+  const [currentUser, setCurrentUser] = useState(getUserFromLocalStorage());
   const [selectedCard, setSelectedCard] = useState(null);
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: '',
-    cvc: '',
-    expDate: '',
-  });
+  const [existingCards, setExistingCards] = useState([]);
+  const [accountBalance, setAccountBalance] = useState(0.0);
 
-  // Sample saved cards (for testing)
-  const [savedCards, setSavedCards] = useState([
-    { cardNumber: '**** **** **** 1234', expDate: '12/25' },
-    { cardNumber: '**** **** **** 5678', expDate: '08/26' },
-  ]);
+  useEffect(() => {
+    const fetchCartItems = async () => {
+      try {
+        const response = await apiClient.get(`/api/cart/${currentUser.userID}`);
+        setCartItems(response.data);
+      } catch (error) {
+        message.error('Failed to fetch cart items. Please try again.');
+        console.error(error);
+      }
+    };
 
-  // Sample cart data (for testing)
-  const sampleCartData = [
-    {
-      classID: 'SW001',
-      classType: 'Freestyle Swimming',
-      classLevel: 'Beginner',
-      date: '2024-12-10',
-      time: '10:00',
-      price: '$50',
-    },
-    {
-      classID: 'SW002',
-      classType: 'Butterfly Stroke',
-      classLevel: 'Intermediate',
-      date: '2024-12-12',
-      time: '12:00',
-      price: '$70',
-    },
-  ];
+    if (currentUser?.userRole === 'swimmer') {
+      fetchCartItems();
+      fetchExistingCards(currentUser.userID);
+      fetchAccountBalance(currentUser.userID);
+      console.log(existingCards);
+    }
+  }, [currentUser]);
 
-  // Initialize cart with sample data (for testing)
-  if (cartItems.length === 0) {
-    setCartItems(sampleCartData);
-  }
+  const fetchAccountBalance = async (userID) => {
+    try {
+      const response = await apiClient.get(`/api/users/account_balance/${userID}`);
+      setAccountBalance(response.data.account_balance); // Update state with the balance
+      setSwimmerBalance(response.data.account_balance);
+    } catch (error) {
+      message.error('Failed to fetch account balance. Please try again.');
+      console.error(error);
+    }
+  };
 
   // Handler for removing a class from the cart
-  const removeFromCart = (classID) => {
-    const updatedCart = cartItems.filter((item) => item.classID !== classID);
-    setCartItems(updatedCart);
-    message.info('Class removed from cart.');
+  const removeFromCart = async (classID) => {
+    console.log('Removing class:', classID);
+    try {
+      await apiClient.delete(`/api/cart/${currentUser.userID}`, { data: { classID } });
+      setCartItems((prevItems) => prevItems.filter((item) => item.classID !== classID));
+      message.info('Class removed from cart.');
+    } catch (error) {
+      message.error('Failed to remove class from cart. Please try again.');
+      console.error(error);
+    }
   };
 
   // Handler for proceeding to the next step
@@ -69,74 +72,68 @@ function Cart() {
       return;
     }
     if (currentStep === 1 && paymentMethod === 'Card' && !selectedCard) {
-      message.warning('Please select a saved card or add a new one.');
-      return;
-    }
-    if (currentStep === 1 && selectedCard === 'addNew') {
-      setIsCardModalVisible(true);
+      message.warning('Please select a saved card.');
       return;
     }
     setCurrentStep(currentStep + 1);
   };
 
+  const fetchExistingCards = async (userID) => {
+    try {
+      const response = await apiClient.get(`/api/payment/cards`, {
+        params: { userID },
+      });
+      setExistingCards(response.data);
+    } catch (error) {
+      message.error('Failed to fetch cards. Please try again.');
+      console.error(error);
+    }
+  };
+  const clearCart = async () => {
+    try {
+      await apiClient.delete(`/api/cart/clear/${currentUser.userID}`);
+      setCartItems([]); // Clear cart in the frontend
+      message.success('Cart cleared successfully!');
+    } catch (error) {
+      message.error('Failed to clear cart. Please try again.');
+      console.error(error);
+    }
+  };
+  
   // Handler for making the payment
-  const makePayment = () => {
-    const totalAmount = cartItems.reduce((sum, item) => sum + parseFloat(item.price.slice(1)), 0);
-
+  const makePayment = async () => {
+    const totalAmount = cartItems.reduce((sum, item) => sum + parseFloat(item.price), 0);
+    console.log(cartItems);
+    console.log('Total Amount:', totalAmount);
+    console.log('Swimmer Balance:', swimmerBalance);
+  
     if (totalAmount > swimmerBalance) {
       message.error('Insufficient balance!');
       return;
     }
-
-    // Deduct the amount from swimmer's account
-    setSwimmerBalance(swimmerBalance - totalAmount);
-    message.success('Payment successful!');
-
-    // Add classes to the swimmer's calendar
-    const updatedCalendar = [...calendar, ...cartItems];
-    setCalendar(updatedCalendar);
-
-    // Clear the cart and reset the progress
-    setCartItems([]);
-    setCurrentStep(0);
-  };
-
-  // Handler for closing the card modal
-  const handleCardModalCancel = () => {
-    setIsCardModalVisible(false);
-  };
-
-  // Handler for submitting card details
-  const handleCardDetailsSubmit = () => {
-    if (!cardDetails.cardNumber || !cardDetails.cvc || !cardDetails.expDate) {
-      message.error('Please fill in all card details.');
-      return;
+  
+    try {
+      const response = await apiClient.post('/api/payment/deduct', {
+        userID: currentUser.userID,
+        amount: totalAmount,
+      });
+  
+      message.success('Payment successful!');
+      setSwimmerBalance(response.data.newBalance); // Update balance
+      await clearCart(); // Clear cart
+      setCartItems([]); // Clear cart
+      setCalendar([...calendar, ...cartItems]); // Add classes to calendar
+      setCurrentStep(0); // Reset progress
+    } catch (error) {
+      message.error('Payment failed. Please try again.');
+      console.error(error);
     }
-
-    setIsCardModalVisible(false);
-    message.success('New card added successfully.');
-    setSelectedCard(`**** **** **** ${cardDetails.cardNumber.slice(-4)}`);
   };
-
-  // Handler for input change in card details form
-  const handleCardInputChange = (e) => {
-    const { name, value } = e.target;
-    setCardDetails((prevDetails) => ({
-      ...prevDetails,
-      [name]: value,
-    }));
-  };
+  
 
   // Handler for selecting a card
   const handleCardSelection = (value) => {
     setSelectedCard(value);
-  };
-
-  // Handler for deleting a saved card
-  const deleteSavedCard = (cardNumber) => {
-    const updatedCards = savedCards.filter((card) => card.cardNumber !== cardNumber);
-    setSavedCards(updatedCards);
-    message.success('Card deleted successfully.');
   };
 
   // Progress Bar Step Descriptions
@@ -196,25 +193,18 @@ function Cart() {
 
             {paymentMethod === 'Card' && (
               <Select
-                placeholder="Select a saved card or add a new one"
+                placeholder="Select a saved card"
                 style={{ width: '100%', marginTop: '20px' }}
-                onChange={handleCardSelection}
+                onChange={handleCardSelection} // This will set selectedCard to the cardID
               >
-                {savedCards.map((card, index) => (
-                  <Option key={index} value={card.cardNumber}>
-                    {card.cardNumber} (Exp: {card.expDate})
-                    <CloseOutlined
-                      style={{ marginLeft: 8, color: 'red' }}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent Select from triggering
-                        deleteSavedCard(card.cardNumber);
-                      }}
-                    />
+                {existingCards.map((card) => (
+                  <Option key={card.cardID} value={card.cardID}>
+                    Card ID: {card.cardID}
                   </Option>
                 ))}
-                <Option value="addNew">+ Add New Card</Option>
               </Select>
             )}
+
 
             <Button type="primary" block onClick={nextStep}>
               Proceed to Payment
@@ -226,7 +216,7 @@ function Cart() {
           <>
             <Title level={4}>Complete Payment</Title>
             <Paragraph>
-              Total Amount: <strong>${cartItems.reduce((sum, item) => sum + parseFloat(item.price.slice(1)), 0)}</strong>
+              Total Amount: <strong>${cartItems.reduce((sum, item) => sum + parseFloat(item.price), 0)}</strong>
             </Paragraph>
             <Button type="primary" block onClick={makePayment}>
               Make Payment
@@ -234,27 +224,6 @@ function Cart() {
           </>
         )}
       </Card>
-
-      {/* Card Details Modal */}
-      <Modal
-        title="Enter Card Details"
-        visible={isCardModalVisible}
-        onCancel={handleCardModalCancel}
-        onOk={handleCardDetailsSubmit}
-        okText="Save"
-      >
-        <Form layout="vertical">
-          <Form.Item label="Card Number">
-            <Input name="cardNumber" placeholder="1234 5678 9012 3456" maxLength={16} onChange={handleCardInputChange} />
-          </Form.Item>
-          <Form.Item label="CVC">
-            <Input name="cvc" placeholder="123" maxLength={3} onChange={handleCardInputChange} />
-          </Form.Item>
-          <Form.Item label="Expiration Date">
-            <Input name="expDate" placeholder="MM/YY" onChange={handleCardInputChange} />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 }
