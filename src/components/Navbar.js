@@ -126,17 +126,17 @@ function Navbar() {
         <Menu.Item key="classes" icon={<BookOutlined />}>
           <Link to="/classes">Classes</Link>
         </Menu.Item>
-        <Menu.Item key="cart" icon={<ShoppingCartOutlined />}>
+        { currentUser && currentUser.userRole === "swimmer" && (<Menu.Item key="cart" icon={<ShoppingCartOutlined />}>
           <Link to="/cart">Cart</Link>
-        </Menu.Item>
+        </Menu.Item>)}
         {currentUser && currentUser.userRole === 'coach' && (
           <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
             <Link to="/coach-dashboard">Coach Dashboard</Link>
           </Menu.Item>
         )}
-        <Menu.Item key="other-activities" icon={<StarOutlined />}>
+        { currentUser && currentUser.userRole === 'swimmer' && (<Menu.Item key="other-activities" icon={<StarOutlined />}>
           <Link to="/other-activities">Other Activities</Link>
-        </Menu.Item>
+        </Menu.Item>)}
         <Menu.Item key="settings" icon={<SettingOutlined />}>
           <Link to="/settings">Settings</Link>
         </Menu.Item>

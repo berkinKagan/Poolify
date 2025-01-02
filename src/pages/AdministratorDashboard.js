@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Tabs, Card, Form, Input, Button, Select, message, Table } from 'antd';
 import apiClient from '../apiClient';
 import { max } from 'moment';
+import AssignLifeguard from './AssignLifeguard';
+import AssignCleaning from './AssignCleaning';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -226,14 +228,17 @@ function AdministratorDashboard() {
     <Card>
       <h1>Administrator Dashboard</h1>
       <Tabs defaultActiveKey="1">
-        <TabPane tab="Statistics" key="1">
+        <TabPane tab="Utilities" key="1">
             {renderStatistics()}
         </TabPane>
         <TabPane tab="Create" key="2">
           {renderCreateForm()}
         </TabPane>
-        <TabPane>
-          {/* Add more tabs here */}
+        <TabPane tab="Assign" key="3">
+          <AssignLifeguard />
+        </TabPane>
+        <TabPane tab="Cleaning" key="4">
+          <AssignCleaning />
         </TabPane>
       </Tabs>
     </Card>
