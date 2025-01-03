@@ -1,40 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, Button, Modal, Form, Input, Select, Table, message } from 'antd';
+import {
+  Card,
+  Typography,
+  Button,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Table,
+  message,
+  Tabs
+} from 'antd';
 import apiClient from '../apiClient';
 import { getUserFromLocalStorage } from '../Auth';
 
 const { Paragraph } = Typography;
 const { Option } = Select;
+const { TabPane } = Tabs;
 
 function CoachDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [sessions, setSessions] = useState([]);
   const [form] = Form.useForm();
   const [sessionType, setSessionType] = useState('');
 
-  // Assume we have a user object with userID if the user is a coach
-  const [user] = useState(getUserFromLocalStorage());
+  // We’ll keep two separate lists: one for Class Sessions, one for Training Sessions
+  const [classSessions, setClassSessions] = useState([]);
+  const [trainingSessions, setTrainingSessions] = useState([]);
 
-  // We'll store available lanes here (ADDED)
+  // We'll store available lanes here (used by the modal)
   const [lanes, setLanes] = useState([]);
 
-  // Example table columns for local display
-  const columns = [
-    { title: 'Class ID', dataIndex: 'classID', key: 'classID' },
-    { title: 'Type', dataIndex: 'classType', key: 'classType' },
-    { title: 'Level', dataIndex: 'classLevel', key: 'classLevel' },
-    { title: 'Date', dataIndex: 'classDate', key: 'classDate', width: 120 },
-    { title: 'Time', dataIndex: 'timeRange', key: 'timeRange' },
-    { title: 'Price', dataIndex: 'price', key: 'price' },
-    { title: 'Coach', dataIndex: 'coachName', key: 'coachName' },
-    { title: 'Pool ID', dataIndex: 'poolID', key: 'poolID' },
-  ];
+  // Get the logged-in user (assumes user is a coach)
+  const [user] = useState(getUserFromLocalStorage());
 
-  // 1) On mount, fetch existing classes for this coach
+  /**
+   * 1) Fetch class sessions for this coach
+   */
   useEffect(() => {
     const fetchCoachClasses = async () => {
       try {
-        if (!user?.userID) return;  // if no userID, skip
+        if (!user?.userID) return;
         // Example endpoint: GET /api/classes/coach/:coach_id
         const response = await apiClient.get(`/api/classes/coach/${user.userID}`);
         const transformedData = response.data.map((session) => ({
@@ -42,15 +47,18 @@ function CoachDashboard() {
           classID: session.classID,
           classType: session.classType,
           classLevel: session.classLevel,
+          courseDescription: session.courseDescription,
           classDate: session.classDate,
           timeRange: `${session.startTime} - ${session.endTime}`,
           price: session.price,
           coachName: session.coach
             ? session.coach.firstName + ' ' + session.coach.lastName
             : '',
-          poolID: session.pool?.poolID ?? '',
+          poolId: session.pool?.poolID,
+          genderRestriction: session.genderRestriction,
         }));
-        setSessions(transformedData);
+        console.log('Class sessions:', transformedData);
+        setClassSessions(transformedData);
       } catch (error) {
         console.error('Failed to fetch coach classes', error);
         message.error('Could not load coach classes');
@@ -59,26 +67,53 @@ function CoachDashboard() {
     fetchCoachClasses();
   }, [user?.userID]);
 
-  // 2) We watch form values (date, startTime, endTime). (ADDED)
+  /**
+   * 2) Fetch training sessions for this coach
+   */
+  useEffect(() => {
+    const fetchCoachTraining = async () => {
+      try {
+        if (!user?.userID) return;
+        // Example endpoint: GET /api/classes/coachtraining/:coach_id
+        const response = await apiClient.get(`/api/classes/coachtraining/${user.userID}`);
+        const transformedData = response.data.map((session) => ({
+          key: session.trainingID, // Ensure trainingID is defined
+          trainingID: session.trainingID,
+          trainingType: session.trainingType,
+          trainingLevel: session.trainingLevel,
+          trainingDate: session.trainingDate, // Use correct key
+          timeRange: `${session.startTime} - ${session.endTime}`,
+          coachName: session.coach
+            ? `${session.coach.firstName} ${session.coach.lastName}`
+            : '',
+          poolId: session.pool?.poolID || 'N/A', // Provide a default value
+        }));
+        console.log('Training sessions:', transformedData);
+        setTrainingSessions(transformedData);
+      } catch (error) {
+        console.error('Failed to fetch coach trainings', error);
+        message.error('Could not load coach training sessions');
+      }
+    };
+    fetchCoachTraining();
+  }, [user?.userID]);
+  
+
+  /**
+   * 3) Watch form fields (date, startTime, endTime) and fetch available lanes
+   */
   const dateValue = Form.useWatch('date', form);
   const startTimeValue = Form.useWatch('startTime', form);
   const endTimeValue = Form.useWatch('endTime', form);
 
-  // 3) Whenever date/startTime/endTime changes, fetch the available lanes. (ADDED)
   useEffect(() => {
-    // Only fetch if all three have values
     if (!dateValue || !startTimeValue || !endTimeValue) return;
 
     const fetchAvailableLanes = async () => {
       try {
-        // Construct the query string
-        // e.g. /api/classes/lanes/available?date=2025-01-10&startTime=09:00:00&endTime=10:00:00
-        const queryString = `?date=${encodeURIComponent(dateValue)}&startTime=${encodeURIComponent(
-          startTimeValue
-        )}&endTime=${encodeURIComponent(endTimeValue)}`;
-
-        const response = await apiClient.get(`/api/classes/lanes/available${queryString}`);
-        setLanes(response.data); // e.g. [{laneID: 1, poolID:1, capacity:4, current_usage:2}, ...]
+        const query = `?date=${encodeURIComponent(dateValue)}&startTime=${encodeURIComponent(startTimeValue)}&endTime=${encodeURIComponent(endTimeValue)}`;
+        const response = await apiClient.get(`/api/classes/lanes/available${query}`);
+        setLanes(response.data);
       } catch (error) {
         console.error('Failed to fetch lanes', error);
         message.error('Could not load lanes');
@@ -88,30 +123,43 @@ function CoachDashboard() {
     fetchAvailableLanes();
   }, [dateValue, startTimeValue, endTimeValue]);
 
-  // Show the modal
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  // Hide the modal
+  /**
+   * 4) Show/Hide the Modal
+   */
+  const openModal = () => setIsModalOpen(true);
   const handleCancel = () => {
     setIsModalOpen(false);
     form.resetFields();
     setSessionType('');
   };
 
-  //  Called when user picks a session type
+  /**
+   * 5) On session type change
+   */
   const onTypeChange = (value) => {
     setSessionType(value);
   };
 
-  // 4) Called when user clicks OK in the modal to create a class
+  /**
+   * 6) If user selects a lane from the dropdown, fill poolID
+   */
+  const onLaneChange = (value) => {
+    const laneInfo = lanes.find((lane) => lane.laneID === value);
+    if (laneInfo) {
+      form.setFieldsValue({ poolID: laneInfo.poolID });
+      form.setFieldsValue({ laneID: laneInfo.laneID });
+    }
+  };
+
+  /**
+   * 7) Submit the form -> create class or training
+   */
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-
-      // Convert numeric fields
       const processedValues = { ...values };
+
+      // Numeric conversions
       if (processedValues.price) {
         processedValues.price = parseFloat(processedValues.price);
       }
@@ -123,33 +171,84 @@ function CoachDashboard() {
         delete processedValues.classCapacity;
       }
 
-      // Rename date -> classDate if it's a ClassSession
-      if (processedValues.date) {
+      // Rename 'date' -> 'classDate' if ClassSession
+      if ( processedValues.date) {
         processedValues.classDate = processedValues.date;
         delete processedValues.date;
       }
 
-      // Provide any other required fields that your backend needs
-      processedValues.poolID = 1; // or pick from user?
-      // (ADDED) If user selected a lane in the UI, we use that laneID
-      // If you want the user to pick from <Select lane> below, do something like:
-      // processedValues.laneID = form.getFieldValue('laneID'); 
-      processedValues.coachID = user.userID || 1;
-      processedValues.lifeguardID = 1;
+      // For TrainingSession, you might rename 'date' to something else
+      // or keep it as 'date' if your backend expects that.
 
-      // Post to the correct endpoint
-      const endpoint =
-        sessionType === 'ClassSession' ? '/api/classes/' : '/api/trainingsessions/';
-      console.log('Posting to:', endpoint);
+      // Fill additional required fields
+      processedValues.laneID = form.getFieldValue('laneID');
+      processedValues.poolID = form.getFieldValue('poolID');
+      processedValues.lifeguardID = 1;               // placeholder
+      processedValues.coachID = user.userID || 1;    // logged in coach
+
+      // Decide which endpoint:
+      const endpoint = sessionType === 'ClassSession'
+        ? '/api/classes/'
+        : '/api/classes/training';
+
       console.log('Final processedValues:', processedValues);
+
+      // Post
       const response = await apiClient.post(endpoint, processedValues);
 
-      // If success, add to table and notify
-      setSessions([...sessions, { key: sessions.length, ...response.data }]);
+      // On success, you might want to re-fetch or locally append to
+      // classSessions/trainingSessions. For now, let's just show a success message.
       message.success('Session created successfully');
       form.resetFields();
       setIsModalOpen(false);
       setSessionType('');
+
+      // Refresh the session lists
+      if (sessionType === 'ClassSession') {
+        // Fetch Class Sessions again
+        const refreshedClasses = await apiClient.get(`/api/classes/coach/${user.userID}`);
+        const transformedClasses = refreshedClasses.data.map((session) => ({
+          key: session.classID,
+          classID: session.classID,
+          classType: session.classType,
+          classLevel: session.classLevel,
+          courseDescription: session.courseDescription,
+          classDate: session.classDate,
+          timeRange: `${session.startTime} - ${session.endTime}`,
+          price: session.price,
+          coachName: session.coach
+            ? `${session.coach.firstName} ${session.coach.lastName}`
+            : '',
+          poolId: session.pool?.poolID || '',
+          genderRestriction: session.genderRestriction
+        }));
+        setClassSessions(transformedClasses);
+      } else if (sessionType === 'TrainingSession') {
+        // Fetch Training Sessions again
+        const refreshedTrainings = await apiClient.get(`/api/classes/coachtraining/${user.userID}`);
+        const transformedTrainings = refreshedTrainings.data.map((session) => ({
+          key: session.trainingID,
+          trainingID: session.trainingID,
+          trainingType: session.trainingType,
+          trainingLevel: session.trainingLevel,
+          courseDescription: session.courseDescription || '',
+          trainingDate: session.trainingDate,
+          timeRange: `${session.startTime} - ${session.endTime}`,
+          coachName: session.coach
+            ? `${session.coach.firstName} ${session.coach.lastName}`
+            : '',
+          poolId: session.pool?.poolID || '',
+
+        }));
+        setTrainingSessions(transformedTrainings);
+      }
+
+      // Reset form and close modal
+      form.resetFields();
+      setIsModalOpen(false);
+      setSessionType('');
+
+
     } catch (error) {
       if (error.response?.data?.message) {
         message.error(error.response.data.message);
@@ -159,7 +258,104 @@ function CoachDashboard() {
     }
   };
 
-  // 5) Conditionally render fields based on sessionType
+  /**
+   * 8) Columns for Class Sessions table
+   */
+  const classColumns = [
+    {
+      title: 'Class Type',
+      dataIndex: 'classType',
+      key: 'classType',
+    },
+    {
+      title: 'Level',
+      dataIndex: 'classLevel',
+      key: 'classLevel',
+    },
+    {
+      title: 'Description',
+      dataIndex: 'courseDescription',
+      key: 'courseDescription',
+    },
+    {
+      title: 'Date',
+      dataIndex: 'classDate',
+      key: 'classDate',
+      width: 120,
+    },
+    {
+      title: 'Time',
+      dataIndex: 'timeRange',
+      key: 'timeRange',
+    },
+    {
+      title: 'Price',
+      dataIndex: 'price',
+      key: 'price',
+    },
+    {
+      title: 'Coach',
+      dataIndex: 'coachName',
+      key: 'coachName',
+    },
+    {
+      title: "Gender Restriction",
+      dataIndex: "genderRestriction",
+      key: "genderRestriction",
+    },
+    {
+      title: 'Pool ID',
+      dataIndex: 'poolId',
+      key: 'poolId',
+    },
+  ];
+
+  /**
+   * 9) Columns for Training Sessions table
+   *    (If your backend returns different fields, adapt them below)
+   */
+  const trainingColumns = [
+    {
+      title: 'Training ID',
+      dataIndex: 'trainingID',
+      key: 'trainingID',
+    },
+    {
+      title: 'Training Type',
+      dataIndex: 'trainingType',
+      key: 'trainingType',
+    },
+    {
+      title: 'Training Level',
+      dataIndex: 'trainingLevel',
+      key: 'trainingLevel',
+    },
+    {
+      title: 'Date',
+      dataIndex: 'date',
+      key: 'date',
+      width: 120,
+    },
+    {
+      title: 'Time',
+      dataIndex: 'timeRange',
+      key: 'timeRange',
+    },
+    {
+      title: 'Coach',
+      dataIndex: 'coachName',
+      key: 'coachName',
+    },
+    {
+      title: 'Pool ID',
+      dataIndex: 'poolId',
+      key: 'poolId',
+    },
+  ];
+
+  /**
+   * 10) Render additional fields based on sessionType
+   */
   const renderAdditionalFields = () => {
     switch (sessionType) {
       case 'TrainingSession':
@@ -197,7 +393,6 @@ function CoachDashboard() {
             >
               <Input type="number" />
             </Form.Item>
-
             <Form.Item
               label="Class Level"
               name="classLevel"
@@ -209,7 +404,6 @@ function CoachDashboard() {
                 <Option value="Advanced">Advanced</Option>
               </Select>
             </Form.Item>
-
             <Form.Item
               label="Class Type"
               name="classType"
@@ -217,15 +411,13 @@ function CoachDashboard() {
             >
               <Input />
             </Form.Item>
-
             <Form.Item
               label="Age Limit"
               name="ageLimit"
-              rules={[{ required: true, message: 'Please enter the age limit' }]}
+              rules={[{ required: false }]}
             >
               <Input type="number" />
             </Form.Item>
-
             <Form.Item
               label="Registration Deadline"
               name="registrationDeadline"
@@ -233,7 +425,6 @@ function CoachDashboard() {
             >
               <Input type="date" />
             </Form.Item>
-
             <Form.Item
               label="Price"
               name="price"
@@ -241,48 +432,53 @@ function CoachDashboard() {
             >
               <Input type="number" />
             </Form.Item>
-          </>
-        );
-
-      case 'SwimmingSession':
-        return (
-          <>
             <Form.Item
-              label="Session Size"
-              name="sessionSize"
-              rules={[{ required: true, message: 'Please enter the session size' }]}
+              label="Description"
+              name="courseDescription"
             >
-              <Input type="number" />
+              <Input />
             </Form.Item>
-
             <Form.Item
-              label="Session Level"
-              name="sessionLevel"
-              rules={[{ required: true, message: 'Please select the session level' }]}
+              label="Gender Restriction"
+              name="genderRestriction"
+              rules={[{ required: true, message: 'Please specify gender restriction' }]}
             >
-              <Select placeholder="Select Session Level">
-                <Option value="Beginner">Beginner</Option>
-                <Option value="Intermediate">Intermediate</Option>
-                <Option value="Advanced">Advanced</Option>
+              <Select placeholder="Specify Restriction">
+                <Option value="Male">Male</Option>
+                <Option value="Female">Female</Option>
+                <Option value="All">All</Option>
               </Select>
             </Form.Item>
           </>
         );
 
+      
       default:
         return null;
     }
   };
 
   return (
-    <Card title="Coach Dashboard" style={{ width: 800, margin: 'auto', marginTop: 50 }}>
-      <Paragraph>Welcome, Coach! Here you can manage your classes and students.</Paragraph>
+    <Card title="Coach Dashboard" style={{ width: 1000, margin: 'auto', marginTop: 50 }}>
+      <Typography.Title level={4}>Welcome, Coach!</Typography.Title>
+      <Paragraph>Here you can manage your Classes and Training Sessions.</Paragraph>
+
       <Button type="primary" onClick={openModal}>
         Create Session
       </Button>
 
-      <Table dataSource={sessions} columns={columns} style={{ marginTop: 20 }} />
+      {/* TABS: one for Class Sessions, one for Training Sessions */}
+      <Tabs defaultActiveKey="1" style={{ marginTop: 20 }}>
+        <Tabs.TabPane tab="Class Sessions" key="1">
+          <Table dataSource={classSessions} columns={classColumns} pagination={{ pageSize: 5 }} />
+        </Tabs.TabPane>
 
+        <Tabs.TabPane tab="Training Sessions" key="2">
+          <Table dataSource={trainingSessions} columns={trainingColumns} pagination={{ pageSize: 5 }} />
+        </Tabs.TabPane>
+      </Tabs>
+
+      {/* The modal for creating new sessions */}
       <Modal
         title="Create New Session"
         open={isModalOpen}
@@ -308,14 +504,13 @@ function CoachDashboard() {
             <Select placeholder="Select a session type" onChange={onTypeChange}>
               <Option value="TrainingSession">Training Session</Option>
               <Option value="ClassSession">Class Session</Option>
-              <Option value="SwimmingSession">Swimming Session</Option>
             </Select>
           </Form.Item>
 
-          {/* 3. Additional fields based on session type */}
+          {/* Additional fields specific to each session type */}
           {renderAdditionalFields()}
 
-          {/* 4. Common date/time fields */}
+          {/*  Date/time fields */}
           <Form.Item
             label="Date"
             name="date"
@@ -342,9 +537,7 @@ function CoachDashboard() {
                   if (!value || value > getFieldValue('startTime')) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(
-                    new Error('End time must be after start time')
-                  );
+                  return Promise.reject(new Error('End time must be after start time'));
                 },
               }),
             ]}
@@ -352,22 +545,27 @@ function CoachDashboard() {
             <Input type="time" />
           </Form.Item>
 
-          {/* (ADDED) If we want to let user pick a lane from available lanes: */}
+          {/* Lanes dropdown if date/time are filled */}
           {lanes.length > 0 && (
             <Form.Item
               label="Select Lane"
               name="laneID"
               rules={[{ required: true, message: 'Please select a lane' }]}
             >
-              <Select placeholder="Available lanes based on selected date/time">
+              <Select placeholder="Available lanes based on selected date/time" onChange={onLaneChange}>
                 {lanes.map((lane) => (
                   <Option key={lane.laneID} value={lane.laneID}>
-                    Lane #{lane.laneID} (capacity={lane.capacity}, usage={lane.current_usage})
+                    Lane #{lane.laneID} (Pool #{lane.poolID})
                   </Option>
                 ))}
               </Select>
             </Form.Item>
           )}
+
+          {/* Hidden (or auto-filled) fields for poolID, lifeguardID, etc. */}
+          <Form.Item name="poolID" style={{ display: 'none' }}>
+            <Input type="hidden" />
+          </Form.Item>
         </Form>
       </Modal>
     </Card>
