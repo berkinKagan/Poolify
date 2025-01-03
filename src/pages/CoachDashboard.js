@@ -140,7 +140,7 @@ function CoachDashboard() {
       // Post to the correct endpoint
       const endpoint =
         sessionType === 'ClassSession' ? '/api/classes/' : '/api/trainingsessions/';
-
+      console.log('Posting to:', endpoint);
       console.log('Final processedValues:', processedValues);
       const response = await apiClient.post(endpoint, processedValues);
 

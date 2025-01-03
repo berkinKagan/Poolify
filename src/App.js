@@ -15,7 +15,7 @@ import JanitorDashboard from './pages/JanitorDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import { getUserFromLocalStorage, logout } from './Auth';
 import Pools from './pages/Pools';
-
+import MyClasses from './pages/MyClasses';
 
 function App() {
   const location = useLocation();
@@ -50,6 +50,14 @@ function App() {
           element={
             <ProtectedRoute currentUser={currentUser}>
               <OtherActivities />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/myclasses"
+          element={
+            <ProtectedRoute currentUser={currentUser}>
+              <MyClasses />
             </ProtectedRoute>
           }
         />

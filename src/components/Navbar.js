@@ -124,6 +124,9 @@ function Navbar() {
         {currentUser && currentUser.userRole === 'administrator' && (<Menu.Item key="administrator" icon={<BookOutlined />}>
           <Link to="/administrator-dashboard">Admin Dashboard</Link>
         </Menu.Item>)}
+        {currentUser && currentUser.userRole === 'swimmer' && <Menu.Item key="myclasses" icon={<BookOutlined />}>
+          <Link to="/myclasses">My Classes</Link>
+        </Menu.Item>}
         <Menu.Item key="classes" icon={<BookOutlined />}>
           <Link to="/classes">Classes</Link>
         </Menu.Item>
@@ -145,7 +148,7 @@ function Navbar() {
           </Menu.Item>
         )}
         { currentUser && currentUser.userRole === 'swimmer' && (<Menu.Item key="other-activities" icon={<StarOutlined />}>
-          <Link to="/other-activities">Other Activities</Link>
+          <Link to="/other-activities">Sauna</Link>
         </Menu.Item>)}
         <Menu.Item key="settings" icon={<SettingOutlined />}>
           <Link to="/settings">Settings</Link>

@@ -122,6 +122,19 @@ function Cart() {
       setSwimmerBalance(response.data.newBalance); // Update balance
       await clearCart(); // Clear cart
       setCartItems([]); // Clear cart
+
+      for (const item of cartItems) {
+        try {
+          await apiClient.post('/api/participates_in/', {
+            userID: currentUser.userID,
+            classID: item.classID,
+          });
+        } catch (participationError) {
+          console.error(`Failed to add participation for class ${item.classID}:`, participationError);
+          message.error(`Failed to add participation for class ${item.classID}.`);
+        }
+      }
+      
       setCalendar([...calendar, ...cartItems]); // Add classes to calendar
       setCurrentStep(0); // Reset progress
     } catch (error) {
