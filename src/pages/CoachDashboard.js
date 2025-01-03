@@ -444,9 +444,9 @@ function CoachDashboard() {
               rules={[{ required: true, message: 'Please specify gender restriction' }]}
             >
               <Select placeholder="Specify Restriction">
-                <Option value="Male">Male</Option>
-                <Option value="Female">Female</Option>
-                <Option value="All">All</Option>
+                <Option value="male">Male</Option>
+                <Option value="female">Female</Option>
+                <Option value="all">All</Option>
               </Select>
             </Form.Item>
           </>

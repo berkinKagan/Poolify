@@ -86,8 +86,7 @@ function Pools() {
       message.error("This lane is already reserved for the selected date and time.");
       return;
     }
-    console.log(conflicts);
-    return;
+
     message.success("Lane is available for reservation.");
     
 
