@@ -8,6 +8,7 @@ import {
   SettingOutlined,
   WalletOutlined,
   StarOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
@@ -126,6 +127,15 @@ function Navbar() {
         <Menu.Item key="classes" icon={<BookOutlined />}>
           <Link to="/classes">Classes</Link>
         </Menu.Item>
+        {currentUser && currentUser.userRole === 'janitor' && <Menu.Item key="janitor-dashboard" icon={<BookOutlined />}>
+          <Link to="/janitor-dashboard">Janitor Dashboard</Link>
+        </Menu.Item>}
+        {currentUser && currentUser.userRole === 'swimmer' && <Menu.Item key="pools" icon={<UserOutlined />}>
+          <Link to="/pools">Pools</Link>
+        </Menu.Item>}
+        {currentUser && currentUser.userRole === 'lifeguard' && <Menu.Item key="lifeguard-dashboard" icon={<BookOutlined />}>
+          <Link to="/lifeguard-dashboard">Lifeguard Dashboard</Link>
+        </Menu.Item>}
         { currentUser && currentUser.userRole === "swimmer" && (<Menu.Item key="cart" icon={<ShoppingCartOutlined />}>
           <Link to="/cart">Cart</Link>
         </Menu.Item>)}

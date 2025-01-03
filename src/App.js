@@ -10,8 +10,12 @@ import CoachDashboard from './pages/CoachDashboard';
 import LogOut from './pages/LogOut';
 import Navbar from './components/Navbar';
 import OtherActivities from './pages/OtherActivities';
+import LifeGuardDashboard from './pages/LifeGuardDashboard';
+import JanitorDashboard from './pages/JanitorDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import { getUserFromLocalStorage, logout } from './Auth';
+import Pools from './pages/Pools';
+
 
 function App() {
   const location = useLocation();
@@ -97,6 +101,23 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/lifeguard-dashboard"
+          element={
+            <ProtectedRoute currentUser={currentUser} allowedRoles={['lifeguard']}>
+              <LifeGuardDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/janitor-dashboard"
+          element={
+            <ProtectedRoute currentUser={currentUser} allowedRoles={['janitor']}>
+              <JanitorDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/pools" element={<Pools />} />
       </Routes>
     </div>
   );
