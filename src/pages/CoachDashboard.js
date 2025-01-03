@@ -452,29 +452,7 @@ function CoachDashboard() {
           </>
         );
 
-      case 'SwimmingSession':
-        return (
-          <>
-            <Form.Item
-              label="Session Size"
-              name="sessionSize"
-              rules={[{ required: true, message: 'Please enter the session size' }]}
-            >
-              <Input type="number" />
-            </Form.Item>
-            <Form.Item
-              label="Session Level"
-              name="sessionLevel"
-              rules={[{ required: true, message: 'Please select the session level' }]}
-            >
-              <Select placeholder="Select Session Level">
-                <Option value="Beginner">Beginner</Option>
-                <Option value="Intermediate">Intermediate</Option>
-                <Option value="Advanced">Advanced</Option>
-              </Select>
-            </Form.Item>
-          </>
-        );
+      
       default:
         return null;
     }
@@ -526,7 +504,6 @@ function CoachDashboard() {
             <Select placeholder="Select a session type" onChange={onTypeChange}>
               <Option value="TrainingSession">Training Session</Option>
               <Option value="ClassSession">Class Session</Option>
-              <Option value="SwimmingSession">Swimming Session</Option>
             </Select>
           </Form.Item>
 
